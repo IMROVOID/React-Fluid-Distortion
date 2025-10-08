@@ -1,6 +1,5 @@
 # Dependencies and Build Artifacts
 /node_modules
-/client/node_modules
 /dist
 /dist-ssr
 .pnpm-store
