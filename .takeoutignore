@@ -1,0 +1,22 @@
+# Directories to ignore
+.git/
+node_modules/
+build/
+.vscode/
+
+# File types to ignore
+*.log
+*.lock
+*.png
+*.jpg
+*.svg
+*.ico
+
+# Specific files to ignore
+.env
+.gitignore
+.gitattributes
+package-lock.json
+README.md
+takeout.py
+.takeoutignore
