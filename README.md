@@ -15,7 +15,7 @@ This project leverages the power of the React Three Fiber ecosystem to create a 
 ### Core Technologies
 
 *   **React:** The foundation for the user interface.
-*   **React Three Fiber (`@react-three/fiber`):** A powerful React renderer for Three.js, allowing us to build the 3D scene with declarative components.
+*   **React Three Fiber (`@react-three/fiber`):** A powerful React renderer for Three.js, allowing us to build the 3D scene with declarative components. ([GitHub Repo](https://github.com/pmndrs/react-three-fiber) | [Documentation](https://docs.pmnd.rs/react-three-fiber))
 *   **Drei (`@react-three/drei`):** A collection of essential helpers for React Three Fiber. We use it for the `<Text>`, `<Environment>`, and `<MeshTransmissionMaterial>`.
 *   **React Postprocessing (`@react-three/postprocessing`):** Manages the post-processing effects, including the fluid simulation.
 *   **Leva:** Provides the GUI controls for tweaking parameters in real-time.
@@ -33,7 +33,7 @@ This project leverages the power of the React Three Fiber ecosystem to create a 
     *   The text remains stationary while the ring rotates independently around it.
 
 3.  **The Fluid Distortion**
-    *   The interactive fluid effect comes from the `@whatisjery/react-fluid-distortion` library.
+    *   The interactive fluid effect comes from the **[@whatisjery/react-fluid-distortion](https://github.com/whatisjery/react-fluid-distortion)** library, which served as a key reference for this project's fluid simulation.
     *   It's applied as a **post-processing effect**, meaning it's a filter laid on top of the rendered scene. We use `<EffectComposer>` to manage this.
     *   Crucially, we use `<Selection>` and `<Select>` components. Only objects wrapped in `<Select enabled>` (in this case, the ring) are affected by the fluid distortion. This is how the text remains perfectly clear and is not distorted by the fluid effect.
 
