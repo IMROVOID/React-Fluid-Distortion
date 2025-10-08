@@ -4,7 +4,7 @@ import { EffectComposer, Noise, Selection, Select } from '@react-three/postproce
 import { Fluid } from '@whatisjery/react-fluid-distortion';
 import { useControls } from 'leva';
 import { createNoise2D } from 'simplex-noise';
-import { Environment, Html } from '@react-three/drei';
+import { Environment, Text, MeshTransmissionMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 import './App.css';
 
@@ -26,36 +26,27 @@ function AutoFluidSimulator({ mode, circleRadius, speedMin, speedMax, randomness
   const noise2D = useMemo(() => createNoise2D(), []);
 
   useFrame(({ clock }) => {
-    // Exit if the feature is turned off or the real mouse is active.
     if (mode !== 'Circular' || isRealMouseActive) {
       if (debug) setDebugPosition(null);
       return;
     }
 
     const t = clock.getElapsedTime();
-
-    // --- Physics & Position Calculation ---
-
-    // 1. Calculate a smoothly varying speed between the min and max.
-    const speedNoise = (noise2D(t * 0.2, 0) + 1) / 2; // Varies between 0 and 1
+    const speedNoise = (noise2D(t * 0.2, 0) + 1) / 2;
     const currentSpeed = speedMin + (speedMax - speedMin) * speedNoise;
 
-    // 2. Calculate the base circular path position.
     const centerX = size.width / 2;
     const centerY = size.height / 2;
     const angle = t * currentSpeed;
     const circularX = centerX + Math.cos(angle) * circleRadius;
     const circularY = centerY + Math.sin(angle) * circleRadius;
 
-    // 3. Generate a random offset using noise.
     const randomOffsetX = (noise2D(t, 100) * 2 - 1) * randomness;
     const randomOffsetY = (noise2D(t, 200) * 2 - 1) * randomness;
 
-    // 4. Combine the circular path with the random offset.
     const finalX = circularX + randomOffsetX;
     const finalY = circularY + randomOffsetY;
 
-    // --- Event Dispatching ---
     const syntheticEvent = new PointerEvent('pointermove', {
       clientX: finalX,
       clientY: finalY,
@@ -63,7 +54,6 @@ function AutoFluidSimulator({ mode, circleRadius, speedMin, speedMax, randomness
     });
     gl.domElement.dispatchEvent(syntheticEvent);
 
-    // Update the debug dot's position if enabled.
     if (debug) {
       setDebugPosition({ x: finalX, y: finalY });
     } else {
@@ -74,20 +64,11 @@ function AutoFluidSimulator({ mode, circleRadius, speedMin, speedMax, randomness
   return null;
 }
 
-// This component will slowly rotate the camera for a subtle parallax effect
-function CameraAnimation() {
-  const { camera } = useThree();
-  useFrame(({ clock }) => {
-    camera.rotation.z = clock.getElapsedTime() * 0.05;
-  });
-  return null;
-}
-
-// High-resolution, glass-like ring component
+// High-resolution, glass-like ring component with light-bending effect
 function ShinyRing() {
   const meshRef = useRef();
 
-  // Rotate the ring on each frame
+  // This useFrame hook rotates only the ring mesh
   useFrame(() => {
     if (meshRef.current) {
       meshRef.current.rotation.x += 0.002;
@@ -95,47 +76,58 @@ function ShinyRing() {
     }
   });
 
-  // Create the specific flat ring shape using ExtrudeGeometry
-  const extrudeSettings = useMemo(() => ({
-    steps: 1,
-    depth: 0.3, // Thinner depth
-    bevelEnabled: true,
-    bevelThickness: 0.05, // Thinner bevel
-    bevelSize: 0.05,
-    bevelSegments: 24, // Much smoother bevel
-  }), []);
-
-  const shape = useMemo(() => {
-    const ringShape = new THREE.Shape();
-    const outerRadius = 2.0;
-    const innerRadius = 1.4; // Make hole slightly larger for a thinner ring
-    const segments = 256; // High resolution for a perfectly smooth circle
-
-    ringShape.moveTo(outerRadius, 0);
-    ringShape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
-
-    const holePath = new THREE.Path();
-    holePath.moveTo(innerRadius, 0);
-    holePath.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
-
-    ringShape.holes.push(holePath);
-    return ringShape;
-  }, []);
-
-
   return (
     <mesh ref={meshRef} position={[0, 0, 0]}>
-      <extrudeGeometry args={[shape, extrudeSettings]} />
-      <meshPhysicalMaterial
-        color="#333333"
-        metalness={0.2}
-        roughness={0} // Perfectly smooth for clear glass
-        transmission={1.0} // Fully transparent
-        ior={2.33} // High index of refraction for strong light bending
-        thickness={1.5} // How thick the glass is considered for refraction
+      <torusGeometry args={[1.7, 0.3, 32, 512]} />
+      <MeshTransmissionMaterial
+        backside={true}
+        samples={16}
+        resolution={1024}
+        transmission={1}
+        roughness={0.1}
+        thickness={0.4}
+        ior={2.33}
+        chromaticAberration={0.06}
+        anisotropy={0.1}
+        distortion={0.1}
+        distortionScale={0.2}
+        temporalDistortion={0.2}
+        color={"#ffffff"}
+        envMapIntensity={0.7} // Reduced to make the HDR reflections darker
       />
     </mesh>
   );
+}
+
+// 3D Text component that will be placed inside the ring
+function SceneText() {
+    return (
+        <group position={[0, 0, -0.5]}>
+            <Text
+                fontSize={0.45}
+                anchorX="center"
+                anchorY="middle"
+                color="white"
+                position={[0, 0.4, 0]}
+                font={null} // Using the default font for stability
+            >
+                Interactive Fluid Simulation
+            </Text>
+            <Text
+                fontSize={0.12}
+                anchorX="center"
+                anchorY="top"
+                color="white"
+                position={[0, 0, 0]}
+                maxWidth={3}
+                textAlign="center"
+                lineHeight={1.5}
+                font={null} // Using the default font
+            >
+                A real-time fluid dynamics demonstration built with React Three Fiber. Move your mouse to distort the background.
+            </Text>
+        </group>
+    );
 }
 
 function App() {
@@ -236,30 +228,23 @@ function App() {
       <DebugDot position={debugPosition} />
 
       <Canvas style={{ position: 'fixed', top: 0, left: 0, zIndex: 0 }} camera={{ position: [0, 0, 5], fov: 75 }}>
-        <Environment preset="night" />
+        {/* The Environment provides the lighting and reflections for the glass material */}
+        <Environment files="https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_03_1k.hdr" />
+        
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1.5} />
         <hemisphereLight args={[0xffffff, 0x000000, 1.0]} />
 
-        <CameraAnimation />
-
-        {/* The text is now inside the canvas, positioned behind the ring, to allow for refraction */}
-        <Html position={[0, 0, -1]} center>
-          <div className="content">
-            <h1>Interactive Fluid Simulation</h1>
-            <p>A real-time fluid dynamics demonstration built with React Three Fiber. Move your mouse to distort the background.</p>
-          </div>
-        </Html>
+        {/* The text is static and not affected by post-processing */}
+        <SceneText />
 
         <Selection>
-          {/* The EffectComposer will only apply to selected objects */}
           <EffectComposer autoClear={false}>
             {enabled && <Fluid {...fluidConfigSecondary} backgroundColor={sceneConfig.backgroundColor} />}
             <Fluid {...fluidConfigPrimary} backgroundColor={sceneConfig.backgroundColor} />
             <Noise opacity={noiseConfig.opacity} />
           </EffectComposer>
-
-          {/* Select makes this object eligible for the effects */}
+          
           <Select enabled>
             <ShinyRing />
           </Select>

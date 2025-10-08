@@ -7,26 +7,6 @@ body, html, #root {
   background-color: #000000;
 }
 
-/* Updated styles for the text content to work inside the 3D canvas */
-.content {
-  text-align: center;
-  pointer-events: none;
-  color: white;
-  font-family: 'Lexend', sans-serif;
-  width: 600px; /* Set a fixed width to control line wrapping */
-}
-
-h1 {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-p {
-  font-size: 1.2rem;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
 /* --- New styles for the HTML Debug Dot --- */
 .debug-dot {
   position: absolute;
