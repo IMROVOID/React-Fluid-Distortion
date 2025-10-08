@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { EffectComposer, Noise } from '@react-three/postprocessing';
+import { EffectComposer, Noise, Selection, Select } from '@react-three/postprocessing';
 import { Fluid } from '@whatisjery/react-fluid-distortion';
 import { useControls } from 'leva';
 import { createNoise2D } from 'simplex-noise';
+import { Environment, Html } from '@react-three/drei';
+import * as THREE from 'three';
 import './App.css';
 
 // A simple HTML component for the debug dot.
@@ -81,6 +83,61 @@ function CameraAnimation() {
   return null;
 }
 
+// High-resolution, glass-like ring component
+function ShinyRing() {
+  const meshRef = useRef();
+
+  // Rotate the ring on each frame
+  useFrame(() => {
+    if (meshRef.current) {
+      meshRef.current.rotation.x += 0.002;
+      meshRef.current.rotation.y += 0.005;
+    }
+  });
+
+  // Create the specific flat ring shape using ExtrudeGeometry
+  const extrudeSettings = useMemo(() => ({
+    steps: 1,
+    depth: 0.3, // Thinner depth
+    bevelEnabled: true,
+    bevelThickness: 0.05, // Thinner bevel
+    bevelSize: 0.05,
+    bevelSegments: 24, // Much smoother bevel
+  }), []);
+
+  const shape = useMemo(() => {
+    const ringShape = new THREE.Shape();
+    const outerRadius = 2.0;
+    const innerRadius = 1.4; // Make hole slightly larger for a thinner ring
+    const segments = 256; // High resolution for a perfectly smooth circle
+
+    ringShape.moveTo(outerRadius, 0);
+    ringShape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
+
+    const holePath = new THREE.Path();
+    holePath.moveTo(innerRadius, 0);
+    holePath.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
+
+    ringShape.holes.push(holePath);
+    return ringShape;
+  }, []);
+
+
+  return (
+    <mesh ref={meshRef} position={[0, 0, 0]}>
+      <extrudeGeometry args={[shape, extrudeSettings]} />
+      <meshPhysicalMaterial
+        color="#333333"
+        metalness={0.2}
+        roughness={0} // Perfectly smooth for clear glass
+        transmission={1.0} // Fully transparent
+        ior={2.33} // High index of refraction for strong light bending
+        thickness={1.5} // How thick the glass is considered for refraction
+      />
+    </mesh>
+  );
+}
+
 function App() {
   const [debugPosition, setDebugPosition] = useState(null);
   const [isRealMouseActive, setIsRealMouseActive] = useState(false);
@@ -119,7 +176,6 @@ function App() {
       options: ['Off', 'Circular'],
       label: 'Mode',
     },
-    // These controls will only render if the mode is 'Circular'
     circleRadius: {
       value: 150,
       min: 10,
@@ -155,54 +211,61 @@ function App() {
     debug: { value: false, label: 'Debug' },
   });
   
-  // Effect to track real mouse movement and pause the auto-simulator accordingly.
+  // Effect to track real mouse movement
   useEffect(() => {
     const handleMouseMove = () => {
       setIsRealMouseActive(true);
       clearTimeout(mouseTimeoutRef.current);
-      mouseTimeoutRef.current = setTimeout(() => {
-        setIsRealMouseActive(false);
-      }, 150); // Mouse is considered inactive after 150ms of no movement
+      mouseTimeoutRef.current = setTimeout(() => setIsRealMouseActive(false), 150);
     };
-
     const handleMouseLeave = () => {
       setIsRealMouseActive(false);
       clearTimeout(mouseTimeoutRef.current);
     };
-
     window.addEventListener('mousemove', handleMouseMove);
     document.body.addEventListener('mouseleave', handleMouseLeave);
-
-    // Cleanup listeners and timeout on component unmount
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       document.body.removeEventListener('mouseleave', handleMouseLeave);
       clearTimeout(mouseTimeoutRef.current);
     };
-  }, []); // Empty dependency array ensures this effect runs only once
+  }, []);
 
   return (
     <>
-      <div className="content">
-        <h1>Welcome to the future of the Internet.</h1>
-        <p>FORMLESS is a decentralized distribution network that empowers individuals to connect, create, collaborate and share in a multiplayer digital economy.</p>
-      </div>
-
       <DebugDot position={debugPosition} />
 
-      <Canvas style={{ position: 'fixed', top: 0, left: 0, zIndex: 0 }}>
+      <Canvas style={{ position: 'fixed', top: 0, left: 0, zIndex: 0 }} camera={{ position: [0, 0, 5], fov: 75 }}>
+        <Environment preset="night" />
         <ambientLight intensity={0.5} />
+        <directionalLight position={[10, 10, 5]} intensity={1.5} />
         <hemisphereLight args={[0xffffff, 0x000000, 1.0]} />
 
         <CameraAnimation />
 
-        <AutoFluidSimulator {...autoFluidControls} setDebugPosition={setDebugPosition} isRealMouseActive={isRealMouseActive} />
+        {/* The text is now inside the canvas, positioned behind the ring, to allow for refraction */}
+        <Html position={[0, 0, -1]} center>
+          <div className="content">
+            <h1>Interactive Fluid Simulation</h1>
+            <p>A real-time fluid dynamics demonstration built with React Three Fiber. Move your mouse to distort the background.</p>
+          </div>
+        </Html>
 
-        <EffectComposer>
-          {enabled && <Fluid {...fluidConfigSecondary} backgroundColor={sceneConfig.backgroundColor} />}
-          <Fluid {...fluidConfigPrimary} backgroundColor={sceneConfig.backgroundColor} />
-          <Noise opacity={noiseConfig.opacity} />
-        </EffectComposer>
+        <Selection>
+          {/* The EffectComposer will only apply to selected objects */}
+          <EffectComposer autoClear={false}>
+            {enabled && <Fluid {...fluidConfigSecondary} backgroundColor={sceneConfig.backgroundColor} />}
+            <Fluid {...fluidConfigPrimary} backgroundColor={sceneConfig.backgroundColor} />
+            <Noise opacity={noiseConfig.opacity} />
+          </EffectComposer>
+
+          {/* Select makes this object eligible for the effects */}
+          <Select enabled>
+            <ShinyRing />
+          </Select>
+        </Selection>
+
+        <AutoFluidSimulator {...autoFluidControls} setDebugPosition={setDebugPosition} isRealMouseActive={isRealMouseActive} />
       </Canvas>
     </>
   );
