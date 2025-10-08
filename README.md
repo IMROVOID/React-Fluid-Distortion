@@ -2,9 +2,7 @@
 
 A real-time, interactive fluid dynamics simulation built with React and React Three Fiber. This project showcases a high-poly glass-like ring that refracts 3D text behind it, combined with a fluid distortion effect that responds to mouse movement.
 
-[**Live Demo (Link)**](#) <!-- Add your live demo link here -->
-
- <!-- This is one of the images you provided. You can replace it with a GIF. -->
+[**Live Demo (Link)**](https://imrovoid.github.io/React-Fluid-Distortion/) <!-- Add your live demo link here -->
 
 ---
 
