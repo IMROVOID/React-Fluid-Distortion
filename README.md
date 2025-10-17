@@ -4,6 +4,8 @@ A real-time, interactive fluid dynamics simulation built with React and React Th
 
 [**Live Demo (Link)**](https://imrovoid.github.io/React-Fluid-Distortion/) <!-- Add your live demo link here -->
 
+![React Fluid Distortion Screenshot](https://raw.githubusercontent.com/IMROVOID/React-Fluid-Distortion/main/public/screenshot.png)
+
 ---
 
 ## 🚀 How It Works
